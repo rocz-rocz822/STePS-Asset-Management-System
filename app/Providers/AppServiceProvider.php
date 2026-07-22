@@ -10,6 +10,7 @@ use Illuminate\Auth\Events\Logout;
 use App\Listeners\LogSuccessfulLogin;
 use App\Listeners\LogSuccessfulLogout;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\URL;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,10 +20,16 @@ class AppServiceProvider extends ServiceProvider
     }
 
     public function boot(): void
-    {
-        Asset::observe(AssetObserver::class);
-
-        Event::listen(Login::class, LogSuccessfulLogin::class);
-        Event::listen(Logout::class, LogSuccessfulLogout::class);
+{
+    if (config('app.env') === 'production') {
+        URL::forceScheme('https');
     }
+
+    Asset::observe(AssetObserver::class);
+
+    Event::listen(Login::class, LogSuccessfulLogin::class);
+    Event::listen(Logout::class, LogSuccessfulLogout::class);
 }
+
+}
+
