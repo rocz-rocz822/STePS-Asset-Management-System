@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ $title ?? 'Dashboard' }} - {{ config('app.name') }}</title>
+
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
+<body class="bg-gray-50 font-sans antialiased" x-data="{ sidebarOpen: false }">
+
+    <div class="min-h-screen flex">
+
+        <!-- Sidebar -->
+        <x-sidebar />
+
+        <!-- Main content -->
+        <div class="flex-1 flex flex-col lg:pl-64">
+            <x-topbar />
+
+            <main class="flex-1 p-4 sm:p-6 lg:p-8">
+                {{ $slot }}
+            </main>
+        </div>
+    </div>
+
+    @if (session('error'))
+        <div
+            x-data="{ show: true }"
+            x-show="show"
+            x-init="setTimeout(() => show = false, 5000)"
+            class="fixed bottom-4 right-4 bg-red-600 text-white px-4 py-3 rounded-lg shadow-lg z-50"
+        >
+            {{ session('error') }}
+        </div>
+    @endif
+
+    @stack('scripts')
+
+</body>
+</html>
