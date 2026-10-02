@@ -25,6 +25,11 @@ class ProfileUpdateRequest extends FormRequest
                 'email',
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
+                function ($attribute, $value, $fail) {
+                    if ($this->user()->google_id && $value !== $this->user()->email) {
+                        $fail('This account signs in with Google and its email cannot be changed.');
+                    }
+                },
             ],
         ];
     }

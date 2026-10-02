@@ -38,4 +38,22 @@ enum AssetStatus: string
             self::Archived => 'gray',
         };
     }
+
+    /**
+     * Statuses a user can set directly on the Asset form.
+     * Borrowed, UnderMaintenance, and UnderRepair are excluded —
+     * those are controlled automatically by the Borrowing and
+     * Maintenance modules. Admins can still set them via the
+     * separate "Force Status" action when genuinely needed.
+     */
+    public static function manuallySettable(): array
+    {
+        return [
+            self::Available,
+            self::Assigned,
+            self::Lost,
+            self::Disposed,
+            self::Archived,
+        ];
+    }
 }

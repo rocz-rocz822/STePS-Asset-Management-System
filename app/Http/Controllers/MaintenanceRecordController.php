@@ -43,8 +43,16 @@ class MaintenanceRecordController extends Controller
     {
         $this->authorize('create', MaintenanceRecord::class);
 
-        $assets = Asset::orderBy('name')->get();
-        $technicians = User::orderBy('name')->get();
+        $assets = Asset::query()
+            ->when(! $request->user()->isAdmin(), fn ($q) => $q->where('assigned_to', $request->user()->id))
+            ->orderBy('name')
+            ->get();
+
+        $technicians = User::whereIn('role', ['admin', 'technician'])
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
         $preselectedAssetId = $request->integer('asset_id') ?: null;
 
         return view('maintenance-records.create', compact('assets', 'technicians', 'preselectedAssetId'));
@@ -73,14 +81,17 @@ class MaintenanceRecordController extends Controller
         return redirect()->route('maintenance-records.index')->with('success', 'Maintenance record created successfully.');
     }
 
-    public function edit(MaintenanceRecord $maintenanceRecord): View
-    {
-        $this->authorize('update', $maintenanceRecord);
+        public function edit(MaintenanceRecord $maintenanceRecord): View
+        {
+            $this->authorize('update', $maintenanceRecord);
 
-        $technicians = User::orderBy('name')->get();
+            $technicians = User::whereIn('role', ['admin', 'technician'])
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get();
 
-        return view('maintenance-records.edit', ['record' => $maintenanceRecord, 'technicians' => $technicians]);
-    }
+            return view('maintenance-records.edit', ['record' => $maintenanceRecord, 'technicians' => $technicians]);
+        }
 
     public function update(UpdateMaintenanceRequest $request, MaintenanceRecord $maintenanceRecord): RedirectResponse
     {

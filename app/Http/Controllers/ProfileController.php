@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\AccountDeletionRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
 
@@ -34,32 +34,47 @@ class ProfileController extends Controller
 
         $request->user()->save();
 
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        return Redirect::route('profile.edit')
+            ->with('status', 'profile-updated');
     }
 
     /**
-     * Delete the user's account.
+     * Unlink the user's Google account.
      */
-    public function destroy(Request $request): RedirectResponse
+    public function unlinkGoogle(Request $request): RedirectResponse
     {
-        // Prevent protected accounts from deleting themselves
-        if ($request->user()->is_protected) {
-            abort(403, 'This account is protected and cannot be deleted.');
-        }
-
-        $request->validateWithBag('userDeletion', [
-            'password' => ['required', 'current_password'],
+        $request->user()->update([
+            'google_id' => null,
         ]);
 
+        return back()->with('status', 'google-unlinked');
+    }
+
+    /**
+     * Request account deletion.
+     */
+    public function requestDeletion(Request $request): RedirectResponse
+    {
         $user = $request->user();
 
-        Auth::logout();
+        if ($user->is_protected) {
+            abort(403, 'This account is protected and cannot request deletion.');
+        }
 
-        $user->delete();
+        $request->validate([
+            'reason' => ['nullable', 'string', 'max:1000'],
+        ]);
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        AccountDeletionRequest::updateOrCreate(
+            [
+                'user_id' => $user->id,
+                'status' => 'pending',
+            ],
+            [
+                'reason' => $request->reason,
+            ]
+        );
 
-        return Redirect::to('/');
+        return back()->with('status', 'deletion-requested');
     }
 }

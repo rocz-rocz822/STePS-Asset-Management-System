@@ -30,15 +30,17 @@ class ReportController extends Controller
     {
         $reportType = ReportType::tryFrom($type) ?? abort(404);
 
-        $data = $this->reportService->generate(
-            $reportType->value,
-            $request
-        );
+        $data = $this->reportService->generate($reportType->value, $request);
 
-        return view('reports.show', [
-            'type' => $reportType,
-            'data' => $data,
-        ]);
+        $filterOptions = match ($reportType) {
+            ReportType::ByCategory => ['categories' => \App\Models\Category::orderBy('name')->get()],
+            ReportType::ByStatus => ['statuses' => \App\Enums\AssetStatus::cases()],
+            ReportType::ByCondition => ['conditions' => \App\Enums\AssetCondition::cases()],
+            ReportType::ByLocation => ['locations' => \App\Models\Location::orderBy('building')->get()],
+            default => [],
+        };
+
+        return view('reports.show', ['type' => $reportType, 'data' => $data, ...$filterOptions]);
     }
 
     public function export(string $type, string $format, Request $request): Response

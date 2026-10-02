@@ -21,17 +21,5 @@ class AdminUserSeeder extends Seeder
                 'email_verified_at' => now(),
             ]
         );
-
-        User::updateOrCreate(
-            ['email' => 'technician@steps.local'],
-            [
-                'name' => 'Roczpen M. Sto. Domingo',
-                'password' => Hash::make('password'),
-                'role' => 'technician',
-                'is_active' => true,
-                'is_protected' => false,
-                'email_verified_at' => now(),
-            ]
-        );
     }
 }

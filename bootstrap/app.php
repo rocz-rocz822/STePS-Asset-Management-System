@@ -6,29 +6,53 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 
 return Application::configure(basePath: dirname(__DIR__))
+
     ->withRouting(
-        web: __DIR__.'/../routes/web.php',
-        commands: __DIR__.'/../routes/console.php',
+        web: __DIR__ . '/../routes/web.php',
+        commands: __DIR__ . '/../routes/console.php',
         health: '/up',
     )
+
     ->withMiddleware(function (Middleware $middleware) {
+
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
+            'active' => \App\Http\Middleware\EnsureUserIsActive::class,
         ]);
+
+        $middleware->appendToGroup(
+            'web',
+            \App\Http\Middleware\EnsureUserIsActive::class
+        );
     })
+
     ->withExceptions(function (Exceptions $exceptions) {
+
         $exceptions->render(function (QueryException $e, $request) {
+
             // MySQL foreign key restriction error code
-            if ($e->getCode() === '23000' && str_contains($e->getMessage(), 'a foreign key constraint fails')) {
+            if (
+                $e->getCode() === '23000' &&
+                str_contains(
+                    $e->getMessage(),
+                    'a foreign key constraint fails'
+                )
+            ) {
                 $message = 'This record cannot be deleted because other records still reference it. Remove or reassign those first.';
 
                 if ($request->expectsJson()) {
-                    return response()->json(['message' => $message], 409);
+                    return response()->json(
+                        ['message' => $message],
+                        409
+                    );
                 }
 
                 return back()->with('error', $message);
             }
 
-            return null; // let Laravel handle everything else normally
+            // Let Laravel handle everything else normally
+            return null;
         });
-    })->create();
+    })
+
+    ->create();

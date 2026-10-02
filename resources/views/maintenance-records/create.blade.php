@@ -48,7 +48,27 @@
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <x-input-label for="cost" value="Cost (₱, optional)" />
-                    <x-text-input id="cost" name="cost" type="number" step="0.01" min="0" class="mt-1 block w-full" :value="old('cost')" />
+                    <input
+                        type="text"
+                        id="cost_display"
+                        inputmode="decimal"
+                        placeholder="0.00"
+                        class="mt-1 block w-full rounded-lg border-gray-300 text-sm"
+                        value="{{ old('cost') }}"
+                        x-data
+                        x-on:input="
+                            let raw = $el.value.replace(/[^\d.]/g, '');
+                            let parts = raw.split('.');
+                            if (parts.length > 2) parts = [parts[0], parts.slice(1).join('')];
+                            let intPart = parts[0].replace(/^0+(?=\d)/, '');
+                            let formatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                            if (parts[1] !== undefined) formatted += '.' + parts[1].slice(0, 2);
+                            $el.value = formatted;
+                            document.getElementById('cost').value = raw;
+                        "
+                    >
+                    <input type="hidden" id="cost" name="cost" value="{{ old('cost') }}">
+                    <x-input-error :messages="$errors->get('cost')" class="mt-2" />
                 </div>
                 <div>
                     <x-input-label for="status" value="Status" />

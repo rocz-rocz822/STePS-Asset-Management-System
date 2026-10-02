@@ -18,6 +18,6 @@ class AssetHistoryPolicy
             return true;
         }
 
-        return $history->asset->created_by === $user->id;
+        return $history->asset->assigned_to === $user->id;
     }
 }

@@ -1,10 +1,13 @@
 <?php
 
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\AccountDeletionRequestController;
 use App\Http\Controllers\AssetCodeController;
 use App\Http\Controllers\AssetController;
 use App\Http\Controllers\AssetHistoryController;
+use App\Http\Controllers\AssignmentLogController;
 use App\Http\Controllers\BorrowRecordController;
+use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GlobalSearchController;
@@ -12,6 +15,7 @@ use App\Http\Controllers\LocationController;
 use App\Http\Controllers\MaintenanceRecordController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -51,8 +55,11 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])
         ->name('profile.update');
 
-    Route::delete('/profile', [ProfileController::class, 'destroy'])
-        ->name('profile.destroy');
+    Route::delete('/profile/unlink-google', [ProfileController::class, 'unlinkGoogle'])
+        ->name('profile.unlink-google');
+
+    Route::post('/profile/request-deletion', [ProfileController::class, 'requestDeletion'])
+        ->name('profile.request-deletion');
 
     /*
     |--------------------------------------------------------------------------
@@ -65,27 +72,24 @@ Route::middleware('auth')->group(function () {
     Route::get('assets/trashed', [AssetController::class, 'trashed'])
         ->name('assets.trashed');
 
-    Route::patch('assets/{assetId}/restore', [AssetController::class, 'restore'])
-        ->name('assets.restore');
+    Route::patch(
+        'assets/{assetId}/restore',
+        [AssetController::class, 'restore']
+    )->name('assets.restore');
 
     Route::resource('assets', AssetController::class);
+
+    Route::patch(
+        'assets/{asset}/force-status',
+        [AssetController::class, 'forceStatus']
+    )->name('assets.force-status');
 
     Route::delete(
         'assets/{asset}/attachments/{attachment}',
         [AssetController::class, 'deleteAttachment']
     )->name('assets.attachments.destroy');
 
-    // Route::get(
-    //     'assets/{asset}/qrcode',
-    //     [AssetCodeController::class, 'qrCode']
-    // )->name('assets.qrcode');
-
-    // Route::get(
-    //     'assets/{asset}/barcode',
-    //     [AssetCodeController::class, 'barcode']
-    // )->name('assets.barcode');
-
-    /*  
+    /*
     |--------------------------------------------------------------------------
     | Borrow Records
     |--------------------------------------------------------------------------
@@ -98,6 +102,8 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     | Maintenance Records
     |--------------------------------------------------------------------------
+    | Only Admins and Technicians can access Maintenance.
+    |--------------------------------------------------------------------------
     */
 
     Route::resource('maintenance-records', MaintenanceRecordController::class)
@@ -105,7 +111,7 @@ Route::middleware('auth')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | Asset History & Activity Logs
+    | Asset History, Activity Logs & Assignment Log
     |--------------------------------------------------------------------------
     */
 
@@ -118,6 +124,11 @@ Route::middleware('auth')->group(function () {
         'activity-logs',
         [ActivityLogController::class, 'index']
     )->name('activity-logs.index');
+
+    Route::get(
+        'assignment-log',
+        [AssignmentLogController::class, 'index']
+    )->name('assignment-log.index');
 });
 
 /*
@@ -146,6 +157,27 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     /*
     |--------------------------------------------------------------------------
+    | Account Deletion Requests
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get(
+        'account-deletion-requests',
+        [AccountDeletionRequestController::class, 'index']
+    )->name('account-deletion-requests.index');
+
+    Route::post(
+        'account-deletion-requests/{accountDeletionRequest}/approve',
+        [AccountDeletionRequestController::class, 'approve']
+    )->name('account-deletion-requests.approve');
+
+    Route::post(
+        'account-deletion-requests/{accountDeletionRequest}/deny',
+        [AccountDeletionRequestController::class, 'deny']
+    )->name('account-deletion-requests.deny');
+
+    /*
+    |--------------------------------------------------------------------------
     | Categories
     |--------------------------------------------------------------------------
     */
@@ -164,7 +196,27 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     /*
     |--------------------------------------------------------------------------
+    | Brands
+    |--------------------------------------------------------------------------
+    */
+
+    Route::resource('brands', BrandController::class)
+        ->except(['show']);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Suppliers
+    |--------------------------------------------------------------------------
+    */
+
+    Route::resource('suppliers', SupplierController::class)
+        ->except(['show']);
+
+    /*
+    |--------------------------------------------------------------------------
     | Reports
+    |--------------------------------------------------------------------------
+    | Reports are Admin-only.
     |--------------------------------------------------------------------------
     */
 
@@ -184,4 +236,4 @@ Route::middleware(['auth', 'admin'])->group(function () {
     )->name('reports.export');
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

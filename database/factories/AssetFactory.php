@@ -5,8 +5,10 @@ namespace Database\Factories;
 use App\Enums\AssetCondition;
 use App\Enums\AssetStatus;
 use App\Models\Asset;
+use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Location;
+use App\Models\Supplier;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -22,7 +24,7 @@ class AssetFactory extends Factory
 
         return [
 
-            'asset_code' => 'STEPS-' . now()->year . '-' . $this->faker->unique()->numerify('#####'),
+            'asset_code' => 'NOC-' . now()->year . '-' . $this->faker->unique()->numerify('##########'),
 
             'name' => $this->faker->randomElement([
                 'Dell OptiPlex 7010',
@@ -38,13 +40,7 @@ class AssetFactory extends Factory
 
             'location_id' => Location::query()->inRandomOrder()->value('id') ?? Location::factory(),
 
-            'brand' => $this->faker->randomElement([
-                'Dell',
-                'HP',
-                'Lenovo',
-                'Cisco',
-                'APC',
-            ]),
+            'brand_id' => Brand::query()->inRandomOrder()->value('id') ?? Brand::factory(),
 
             'model' => $this->faker->bothify('Model-####'),
 
@@ -54,11 +50,7 @@ class AssetFactory extends Factory
 
             'property_number' => $this->faker->optional()->numerify('PN-######'),
 
-            'inventory_number' => $this->faker->optional()->numerify('INV-######'),
-
-            'manufacturer' => $this->faker->company(),
-
-            'supplier' => $this->faker->company(),
+            'supplier_id' => Supplier::query()->inRandomOrder()->value('id') ?? Supplier::factory(),
 
             'purchase_date' => $purchaseDate,
 

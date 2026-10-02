@@ -7,14 +7,17 @@ use App\Enums\AssetStatus;
 use App\Http\Requests\StoreAssetRequest;
 use App\Http\Requests\UpdateAssetRequest;
 use App\Models\Asset;
+use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Location;
+use App\Models\Supplier;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use App\Http\Requests\ForceAssetStatusRequest;
 
 class AssetController extends Controller
 {
@@ -23,26 +26,88 @@ class AssetController extends Controller
         $this->authorize('viewAny', Asset::class);
 
         $assets = Asset::query()
-            ->with(['category', 'location', 'assignedUser', 'creator'])
+            ->with([
+                'category',
+                'location',
+                'brand',
+                'supplier',
+                'assignedUser',
+                'creator',
+            ])
+            ->when(
+                ! $request->user()->isAdmin(),
+                fn ($q) => $q->where('assigned_to', $request->user()->id)
+            )
             ->search($request->search)
-            ->when($request->filled('category_id'), fn ($q) => $q->where('category_id', $request->category_id))
-            ->when($request->filled('location_id'), fn ($q) => $q->where('location_id', $request->location_id))
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
-            ->when($request->filled('condition'), fn ($q) => $q->where('condition', $request->condition))
-            ->when($request->filled('assigned_to'), fn ($q) => $q->where('assigned_to', $request->assigned_to))
-            ->when($request->filled('created_by'), fn ($q) => $q->where('created_by', $request->created_by))
-            ->when($request->boolean('mine'), fn ($q) => $q->where('created_by', auth()->id()))
-            ->when($request->filled('purchase_from'), fn ($q) => $q->whereDate('purchase_date', '>=', $request->purchase_from))
-            ->when($request->filled('purchase_to'), fn ($q) => $q->whereDate('purchase_date', '<=', $request->purchase_to))
-            ->when($request->filled('warranty') && $request->warranty === 'expiring_soon', function ($q) {
-                $q->whereNotNull('warranty_expiration')
-                    ->whereDate('warranty_expiration', '>=', now())
-                    ->whereDate('warranty_expiration', '<=', now()->addDays(30));
-            })
-            ->when($request->filled('warranty') && $request->warranty === 'expired', function ($q) {
-                $q->whereNotNull('warranty_expiration')
-                    ->whereDate('warranty_expiration', '<', now());
-            })
+            ->when(
+                $request->filled('category_id'),
+                fn ($q) => $q->where('category_id', $request->category_id)
+            )
+            ->when(
+                $request->filled('location_id'),
+                fn ($q) => $q->where('location_id', $request->location_id)
+            )
+            ->when(
+                $request->filled('status'),
+                fn ($q) => $q->where('status', $request->status)
+            )
+            ->when(
+                $request->filled('condition'),
+                fn ($q) => $q->where('condition', $request->condition)
+            )
+            ->when(
+                $request->filled('assigned_to'),
+                fn ($q) => $q->where('assigned_to', $request->assigned_to)
+            )
+            ->when(
+                $request->filled('created_by'),
+                fn ($q) => $q->where('created_by', $request->created_by)
+            )
+            ->when(
+                $request->boolean('mine'),
+                fn ($q) => $q->where('assigned_to', auth()->id())
+            )
+            ->when(
+                $request->filled('purchase_from'),
+                fn ($q) => $q->whereDate(
+                    'purchase_date',
+                    '>=',
+                    $request->purchase_from
+                )
+            )
+            ->when(
+                $request->filled('purchase_to'),
+                fn ($q) => $q->whereDate(
+                    'purchase_date',
+                    '<=',
+                    $request->purchase_to
+                )
+            )
+            ->when(
+                $request->filled('warranty') &&
+                $request->warranty === 'expiring_soon',
+                function ($q) {
+                    $q->whereNotNull('warranty_expiration')
+                        ->whereDate('warranty_expiration', '>=', now())
+                        ->whereDate(
+                            'warranty_expiration',
+                            '<=',
+                            now()->addDays(30)
+                        );
+                }
+            )
+            ->when(
+                $request->filled('warranty') &&
+                $request->warranty === 'expired',
+                function ($q) {
+                    $q->whereNotNull('warranty_expiration')
+                        ->whereDate(
+                            'warranty_expiration',
+                            '<',
+                            now()
+                        );
+                }
+            )
             ->when(
                 $request->filled('sort') &&
                 in_array($request->sort, [
@@ -61,15 +126,33 @@ class AssetController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        $categories = Category::active()->orderBy('name')->get();
-        $locations = Location::active()->orderBy('building')->get();
-        $users = User::where('is_active', true)->orderBy('name')->get();
+        $categories = Category::active()
+            ->orderBy('name')
+            ->get();
+
+        $locations = Location::active()
+            ->orderBy('building')
+            ->get();
+
+        $users = User::where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        $brands = Brand::active()
+            ->orderBy('name')
+            ->get();
+
+        $suppliers = Supplier::active()
+            ->orderBy('name')
+            ->get();
 
         return view('assets.index', compact(
             'assets',
             'categories',
             'locations',
-            'users'
+            'users',
+            'brands',
+            'suppliers'
         ));
     }
 
@@ -83,12 +166,14 @@ class AssetController extends Controller
     public function store(StoreAssetRequest $request): RedirectResponse
     {
         $asset = DB::transaction(function () use ($request) {
-
             $asset = Asset::create([
                 ...$request->safe()->except([
                     'photo',
                     'attachments',
                 ]),
+                'assigned_to' => $request->user()->isStaff()
+                    ? $request->user()->id
+                    : ($request->assigned_to ?: null),
                 'created_by' => auth()->id(),
             ]);
 
@@ -119,19 +204,18 @@ class AssetController extends Controller
         $asset->load([
             'category',
             'location',
+            'brand',
+            'supplier',
             'assignedUser',
             'creator',
             'updater',
             'attachments.uploader',
-
             'histories' => fn ($query) => $query
                 ->latest()
                 ->take(5),
-
             'borrowRecords' => fn ($query) => $query
                 ->latest('borrow_date')
                 ->take(5),
-
             'maintenanceRecords' => fn ($query) => $query
                 ->latest('maintenance_date')
                 ->take(5),
@@ -145,15 +229,16 @@ class AssetController extends Controller
         $this->authorize('update', $asset);
 
         return view('assets.edit', [
-            ...$this->formData(),
+            ...$this->formData($asset),
             'asset' => $asset,
         ]);
     }
 
-    public function update(UpdateAssetRequest $request, Asset $asset): RedirectResponse
-    {
+    public function update(
+        UpdateAssetRequest $request,
+        Asset $asset
+    ): RedirectResponse {
         DB::transaction(function () use ($request, $asset) {
-
             $asset->update([
                 ...$request->safe()->except([
                     'photo',
@@ -163,7 +248,6 @@ class AssetController extends Controller
             ]);
 
             if ($request->hasFile('photo')) {
-
                 if ($asset->photo_path) {
                     Storage::disk('public')->delete($asset->photo_path);
                 }
@@ -182,6 +266,27 @@ class AssetController extends Controller
             ->with(
                 'success',
                 "Asset {$asset->asset_code} updated successfully."
+            );
+    }
+
+    public function forceStatus(
+        ForceAssetStatusRequest $request,
+        Asset $asset
+    ): RedirectResponse {
+        $request->merge([
+            'change_remarks' => 'Manual override by Admin: '.$request->reason,
+        ]);
+
+        $asset->update([
+            'status' => $request->status,
+            'updated_by' => auth()->id(),
+        ]);
+
+        return redirect()
+            ->route('assets.show', $asset)
+            ->with(
+                'success',
+                "Status force-changed to {$asset->status->label()}."
             );
     }
 
@@ -208,6 +313,8 @@ class AssetController extends Controller
             ->with([
                 'category',
                 'location',
+                'brand',
+                'supplier',
             ])
             ->search($request->search)
             ->latest('deleted_at')
@@ -263,7 +370,6 @@ class AssetController extends Controller
         }
 
         foreach ($request->file('attachments') as $file) {
-
             $path = $file->store(
                 'assets/attachments',
                 'public'
@@ -279,8 +385,18 @@ class AssetController extends Controller
         }
     }
 
-    private function formData(): array
+    private function formData(?Asset $asset = null): array
     {
+        $assignable = auth()->user()->assignableUsers()->get();
+
+        // Keep the current assignee selectable when editing.
+        if (
+            $asset?->assignedUser &&
+            ! $assignable->contains('id', $asset->assigned_to)
+        ) {
+            $assignable->push($asset->assignedUser);
+        }
+
         return [
             'categories' => Category::active()
                 ->orderBy('name')
@@ -290,13 +406,21 @@ class AssetController extends Controller
                 ->orderBy('building')
                 ->get(),
 
-            'users' => User::where('is_active', true)
-                ->orderBy('name')
-                ->get(),
+            'users' => $assignable
+                ->sortBy('name')
+                ->values(),
 
             'statuses' => AssetStatus::cases(),
 
             'conditions' => AssetCondition::cases(),
+
+            'brands' => Brand::active()
+                ->orderBy('name')
+                ->get(),
+
+            'suppliers' => Supplier::active()
+                ->orderBy('name')
+                ->get(),
         ];
     }
 }

@@ -38,16 +38,20 @@ class ReportService
 
     private function completeInventory(Request $request): array
     {
-        $assets = $this->dateFilter(Asset::with(['category', 'location']), $request, 'purchase_date')
+        $assets = $this->dateFilter(Asset::with('category'), $request, 'purchase_date')
             ->orderBy('asset_code')->get();
 
         return [
             'title' => 'Complete Inventory Report',
-            'headers' => ['Asset Code', 'Name', 'Category', 'Location', 'Status', 'Condition', 'Purchase Date', 'Cost'],
+            'headers' => ['Asset Code', 'Name', 'Category', 'Serial Number', 'Property Number', 'Purchase Date', 'Warranty Date', 'Cost'],
             'rows' => $assets->map(fn ($a) => [
-                $a->asset_code, $a->name, $a->category->name, $a->location->full_name,
-                $a->status->label(), $a->condition->label(),
+                $a->asset_code,
+                $a->name,
+                $a->category->name,
+                $a->serial_number ?? '—',
+                $a->property_number ?? '—',
                 $a->purchase_date?->format('M d, Y') ?? '—',
+                $a->warranty_expiration?->format('M d, Y') ?? '—',
                 $a->purchase_cost ? number_format($a->purchase_cost, 2) : '—',
             ]),
         ];
@@ -56,48 +60,68 @@ class ReportService
     private function byCategory(Request $request): array
     {
         $assets = $this->dateFilter(Asset::with(['category', 'location']), $request, 'purchase_date')
+            ->when($request->filled('category_id'), fn ($q) => $q->where('category_id', $request->category_id))
             ->orderBy('category_id')->orderBy('name')->get();
 
         return [
             'title' => 'Assets by Category Report',
-            'headers' => ['Category', 'Asset Code', 'Name', 'Status', 'Location'],
-            'rows' => $assets->map(fn ($a) => [$a->category->name, $a->asset_code, $a->name, $a->status->label(), $a->location->full_name]),
+            'headers' => ['Category', 'Asset Code', 'Name', 'Serial Number', 'Property Number', 'Status', 'Location'],
+            'rows' => $assets->map(fn ($a) => [
+                $a->category->name, $a->asset_code, $a->name,
+                $a->serial_number ?? '—', $a->property_number ?? '—',
+                $a->status->label(), $a->location->full_name,
+            ]),
         ];
     }
 
     private function byStatus(Request $request): array
     {
         $assets = $this->dateFilter(Asset::with(['category', 'location']), $request, 'purchase_date')
+            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
             ->orderBy('status')->orderBy('name')->get();
 
         return [
             'title' => 'Assets by Status Report',
-            'headers' => ['Status', 'Asset Code', 'Name', 'Category', 'Location'],
-            'rows' => $assets->map(fn ($a) => [$a->status->label(), $a->asset_code, $a->name, $a->category->name, $a->location->full_name]),
+            'headers' => ['Status', 'Asset Code', 'Name', 'Serial Number', 'Property Number', 'Category', 'Location'],
+            'rows' => $assets->map(fn ($a) => [
+                $a->status->label(), $a->asset_code, $a->name,
+                $a->serial_number ?? '—', $a->property_number ?? '—',
+                $a->category->name, $a->location->full_name,
+            ]),
         ];
     }
 
     private function byCondition(Request $request): array
     {
         $assets = $this->dateFilter(Asset::with(['category', 'location']), $request, 'purchase_date')
+            ->when($request->filled('condition'), fn ($q) => $q->where('condition', $request->condition))
             ->orderBy('condition')->orderBy('name')->get();
 
         return [
             'title' => 'Assets by Condition Report',
-            'headers' => ['Condition', 'Asset Code', 'Name', 'Category', 'Location'],
-            'rows' => $assets->map(fn ($a) => [$a->condition->label(), $a->asset_code, $a->name, $a->category->name, $a->location->full_name]),
+            'headers' => ['Condition', 'Asset Code', 'Name', 'Serial Number', 'Property Number', 'Category', 'Location'],
+            'rows' => $assets->map(fn ($a) => [
+                $a->condition->label(), $a->asset_code, $a->name,
+                $a->serial_number ?? '—', $a->property_number ?? '—',
+                $a->category->name, $a->location->full_name,
+            ]),
         ];
     }
 
     private function byLocation(Request $request): array
     {
         $assets = $this->dateFilter(Asset::with(['category', 'location']), $request, 'purchase_date')
+            ->when($request->filled('location_id'), fn ($q) => $q->where('location_id', $request->location_id))
             ->orderBy('location_id')->orderBy('name')->get();
 
         return [
             'title' => 'Assets by Location Report',
-            'headers' => ['Location', 'Asset Code', 'Name', 'Category', 'Status'],
-            'rows' => $assets->map(fn ($a) => [$a->location->full_name, $a->asset_code, $a->name, $a->category->name, $a->status->label()]),
+            'headers' => ['Location', 'Asset Code', 'Name', 'Serial Number', 'Property Number', 'Category', 'Status'],
+            'rows' => $assets->map(fn ($a) => [
+                $a->location->full_name, $a->asset_code, $a->name,
+                $a->serial_number ?? '—', $a->property_number ?? '—',
+                $a->category->name, $a->status->label(),
+            ]),
         ];
     }
 
@@ -112,9 +136,11 @@ class ReportService
 
         return [
             'title' => 'Warranty Expiration Report',
-            'headers' => ['Asset Code', 'Name', 'Category', 'Warranty Expiration', 'Status'],
+            'headers' => ['Asset Code', 'Name', 'Serial Number', 'Property Number', 'Category', 'Warranty Expiration', 'Status'],
             'rows' => $assets->map(fn ($a) => [
-                $a->asset_code, $a->name, $a->category->name,
+                $a->asset_code, $a->name,
+                $a->serial_number ?? '—', $a->property_number ?? '—',
+                $a->category->name,
                 $a->warranty_expiration->format('M d, Y'),
                 $a->isUnderWarranty() ? ($a->warrantyExpiringSoon() ? 'Expiring Soon' : 'Active') : 'Expired',
             ]),

@@ -24,13 +24,11 @@ class Asset extends Model
         'description',
         'category_id',
         'location_id',
-        'brand',
+        'brand_id',
+        'supplier_id',
         'model',
         'serial_number',
         'property_number',
-        'inventory_number',
-        'manufacturer',
-        'supplier',
         'purchase_date',
         'purchase_cost',
         'warranty_expiration',
@@ -117,6 +115,16 @@ class Asset extends Model
         return $this->belongsTo(Location::class);
     }
 
+    public function brand(): BelongsTo
+    {
+        return $this->belongsTo(Brand::class);
+    }
+
+    public function supplier(): BelongsTo
+    {
+        return $this->belongsTo(Supplier::class);
+    }
+
     public function assignedUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
@@ -176,11 +184,11 @@ class Asset extends Model
         return $query->where(function ($q) use ($term) {
             $q->where('asset_code', 'like', "%{$term}%")
                 ->orWhere('name', 'like', "%{$term}%")
-                ->orWhere('brand', 'like', "%{$term}%")
                 ->orWhere('model', 'like', "%{$term}%")
                 ->orWhere('serial_number', 'like', "%{$term}%")
                 ->orWhere('property_number', 'like', "%{$term}%")
-                ->orWhere('inventory_number', 'like', "%{$term}%");
+                ->orWhereHas('brand', fn ($bq) => $bq->where('name', 'like', "%{$term}%"))
+                ->orWhereHas('supplier', fn ($sq) => $sq->where('name', 'like', "%{$term}%"));
         });
     }
 
@@ -196,6 +204,8 @@ class Asset extends Model
 
     public function activeBorrow(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->hasOne(BorrowRecord::class)->where('status', 'borrowed')->latestOfMany('borrow_date');
+        return $this->hasOne(BorrowRecord::class)
+            ->where('status', 'borrowed')
+            ->latestOfMany('borrow_date');
     }
 }

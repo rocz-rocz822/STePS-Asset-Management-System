@@ -9,17 +9,25 @@ class BorrowRecordPolicy
 {
     public function viewAny(User $user): bool
     {
-        return true;
+        return ! $user->isStaff();
     }
 
     public function view(User $user, BorrowRecord $record): bool
     {
-        return true;
+        return ! $user->isStaff();
     }
 
     public function create(User $user): bool
     {
-        return $user->canManageAssets();
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        if ($user->isStaff()) {
+            return false;
+        }
+
+        return $user->can_manage_assets;
     }
 
     public function update(User $user, BorrowRecord $record): bool
@@ -28,6 +36,6 @@ class BorrowRecordPolicy
             return true;
         }
 
-        return $user->can_manage_assets && $record->created_by === $user->id;
+        return $record->created_by === $user->id && $user->can_manage_assets;
     }
 }

@@ -18,9 +18,26 @@ class UpdateUserRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($this->route('user'))],
-            'password' => ['nullable', 'confirmed', Password::defaults()],
-            'role' => ['required', 'in:admin,technician'],
+
+            'email' => [
+                'required',
+                'string',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')
+                    ->ignore($this->route('user')),
+            ],
+
+            'password' => [
+                'nullable',
+                'confirmed',
+                Password::defaults(),
+            ],
+
+            'role' => [
+                'required',
+                'in:admin,technician,staff',
+            ],
         ];
     }
 
@@ -29,8 +46,14 @@ class UpdateUserRequest extends FormRequest
         $validator->after(function (Validator $validator) {
             $targetUser = $this->route('user');
 
-            if ($targetUser->is_protected && $this->input('role') !== $targetUser->role) {
-                $validator->errors()->add('role', 'This account\'s role is protected and cannot be changed.');
+            if (
+                $targetUser->is_protected &&
+                $this->input('role') !== $targetUser->role
+            ) {
+                $validator->errors()->add(
+                    'role',
+                    'This account\'s role is protected and cannot be changed.'
+                );
             }
         });
     }

@@ -1,82 +1,73 @@
-@unless (auth()->user()->is_protected)
+@php
+    $pending = auth()->user()->accountDeletionRequests()->where('status', 'pending')->first();
+@endphp
 
-<section class="space-y-6">
-    <header>
-        <h2 class="text-lg font-medium text-gray-900">
-            {{ __('Delete Account') }}
-        </h2>
-
-        <p class="mt-1 text-sm text-gray-600">
-            {{ __('Once your account is deleted, all of its resources and data will be permanently deleted. Before deleting your account, please download any data or information that you wish to retain.') }}
+@if ($pending)
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3">
+        <p class="text-sm text-yellow-800 font-medium">Deletion request pending</p>
+        <p class="text-xs text-yellow-700 mt-1">
+            You requested account deletion on {{ $pending->created_at->format('M d, Y') }}. An administrator will review it. Your account remains fully active until then.
         </p>
-    </header>
-
-    <x-danger-button
+    </div>
+@else
+    <button
         x-data=""
-        x-on:click.prevent="$dispatch('open-modal', 'confirm-user-deletion')"
+        x-on:click.prevent="$dispatch('open-modal-request-deletion')"
+        class="px-4 py-2 bg-red-50 text-red-600 text-sm font-medium rounded-lg hover:bg-red-100"
     >
-        {{ __('Delete Account') }}
-    </x-danger-button>
+        Request Account Deletion
+    </button>
 
-    <x-modal name="confirm-user-deletion" :show="$errors->userDeletion->isNotEmpty()" focusable>
-        <form method="post" action="{{ route('profile.destroy') }}" class="p-6">
-            @csrf
-            @method('delete')
+    <div
+        x-data="{ open: false }"
+        x-on:open-modal-request-deletion.window="open = true"
+        x-show="open"
+        x-cloak
+        class="fixed inset-0 z-50 flex items-center justify-center px-4"
+    >
+        <div class="fixed inset-0 bg-black/40" @click="open = false"></div>
 
-            <h2 class="text-lg font-medium text-gray-900">
-                {{ __('Are you sure you want to delete your account?') }}
-            </h2>
+        <div class="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <h3 class="text-lg font-semibold text-gray-900">
+                Request Account Deletion
+            </h3>
 
-            <p class="mt-1 text-sm text-gray-600">
-                {{ __('Once your account is deleted, all of its resources and data will be permanently deleted. Please enter your password to confirm you would like to permanently delete your account.') }}
+            <p class="mt-2 text-sm text-gray-500">
+                This submits a request to your administrator. Your account won't be removed immediately — once approved, it will be deactivated, not deleted. Any assets, history, or records you've created will remain in the system.
             </p>
 
-            <div class="mt-6">
-                <x-input-label 
-                    for="password" 
-                    value="{{ __('Password') }}" 
-                    class="sr-only" 
-                />
+            <form method="post" action="{{ route('profile.request-deletion') }}" class="mt-4 space-y-4">
+                @csrf
 
-                <x-text-input
-                    id="password"
-                    name="password"
-                    type="password"
-                    class="mt-1 block w-3/4"
-                    placeholder="{{ __('Password') }}"
-                />
+                <div>
+                    <x-input-label for="reason" value="Reason (optional)" class="sr-only" />
 
-                <x-input-error 
-                    :messages="$errors->userDeletion->get('password')" 
-                    class="mt-2" 
-                />
-            </div>
+                    <textarea
+                        id="reason"
+                        name="reason"
+                        rows="3"
+                        placeholder="Why are you requesting this? (optional)"
+                        class="block w-full rounded-lg border-gray-300 text-sm"
+                    ></textarea>
+                </div>
 
-            <div class="mt-6 flex justify-end">
-                <x-secondary-button x-on:click="$dispatch('close')">
-                    {{ __('Cancel') }}
-                </x-secondary-button>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button
+                        type="button"
+                        @click="open = false"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                    >
+                        Cancel
+                    </button>
 
-                <x-danger-button class="ms-3">
-                    {{ __('Delete Account') }}
-                </x-danger-button>
-            </div>
-        </form>
-    </x-modal>
-</section>
-
-@else
-
-<section class="space-y-6">
-    <header>
-        <h2 class="text-lg font-medium text-gray-900">
-            {{ __('Delete Account') }}
-        </h2>
-
-        <p class="mt-1 text-sm text-gray-600">
-            {{ __('This is a protected system account and cannot be deleted.') }}
-        </p>
-    </header>
-</section>
-
-@endunless
+                    <button
+                        type="submit"
+                        class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
+                    >
+                        Submit Request
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+@endif

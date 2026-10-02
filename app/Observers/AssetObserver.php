@@ -24,17 +24,29 @@ class AssetObserver
      */
     public function created(Asset $asset): void
     {
-        // Generate Asset Code
         $asset->updateQuietly([
-            'asset_code' => 'STEPS-IT-' . str_pad($asset->id, 6, '0', STR_PAD_LEFT),
+            'asset_code' => sprintf('%010d', $asset->id),
         ]);
 
-        // Record history
         $this->recordHistory(
             $asset,
             AssetHistoryAction::Created,
-            'Asset record created.'
+            remarks: 'Asset record created.'
         );
+
+        // Record the initial assignment separately.
+        if ($asset->assigned_to) {
+            AssetHistory::create([
+                'asset_id' => $asset->id,
+                'action' => AssetHistoryAction::Created->value,
+                'user_id' => Auth::id(),
+                'performed_by_name' => Auth::user()?->name ?? 'System',
+                'changed_field' => 'assigned_to',
+                'old_value' => null,
+                'new_value' => $asset->assigned_to,
+                'remarks' => 'Assigned when the asset was added.',
+            ]);
+        }
     }
 
     /**
@@ -44,7 +56,10 @@ class AssetObserver
     {
         $changes = collect($asset->getChanges())
             ->except(self::IGNORED_FIELDS)
-            ->filter(fn ($value, $field) => $asset->getOriginal($field) !== $value);
+            ->filter(
+                fn ($value, $field) =>
+                    $asset->getOriginal($field) !== $value
+            );
 
         if ($changes->isEmpty()) {
             return;
@@ -54,14 +69,14 @@ class AssetObserver
 
         foreach ($changes as $field => $newValue) {
             AssetHistory::create([
-                'asset_id'          => $asset->id,
-                'action'            => AssetHistoryAction::Updated->value,
-                'user_id'           => Auth::id(),
+                'asset_id' => $asset->id,
+                'action' => AssetHistoryAction::Updated->value,
+                'user_id' => Auth::id(),
                 'performed_by_name' => Auth::user()?->name ?? 'System',
-                'changed_field'     => $field,
-                'old_value'         => $asset->getOriginal($field),
-                'new_value'         => $newValue,
-                'remarks'           => $remarks,
+                'changed_field' => $field,
+                'old_value' => $asset->getOriginal($field),
+                'new_value' => $newValue,
+                'remarks' => $remarks,
             ]);
         }
     }
@@ -99,11 +114,11 @@ class AssetObserver
         string $remarks
     ): void {
         AssetHistory::create([
-            'asset_id'          => $asset->id,
-            'action'            => $action->value,
-            'user_id'           => Auth::id(),
+            'asset_id' => $asset->id,
+            'action' => $action->value,
+            'user_id' => Auth::id(),
             'performed_by_name' => Auth::user()?->name ?? 'System',
-            'remarks'           => $remarks,
+            'remarks' => $remarks,
         ]);
     }
 }

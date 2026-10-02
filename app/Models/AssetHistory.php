@@ -44,7 +44,6 @@ class AssetHistory extends Model
         'warranty_expiration' => 'Warranty Expiration',
         'serial_number' => 'Serial Number',
         'property_number' => 'Property Number',
-        'inventory_number' => 'Inventory Number',
     ];
 
     public function asset(): BelongsTo

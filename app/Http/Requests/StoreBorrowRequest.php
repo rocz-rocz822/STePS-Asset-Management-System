@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Asset;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 class StoreBorrowRequest extends FormRequest
 {
@@ -23,5 +25,20 @@ class StoreBorrowRequest extends FormRequest
             'expected_return_date' => ['required', 'date', 'after_or_equal:borrow_date'],
             'remarks' => ['nullable', 'string', 'max:1000'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            if ($this->user()->isAdmin() || ! $this->filled('asset_id')) {
+                return;
+            }
+
+            $asset = Asset::find($this->asset_id);
+
+            if ($asset && $asset->assigned_to !== $this->user()->id) {
+                $validator->errors()->add('asset_id', 'You can only lend out assets assigned to you.');
+            }
+        });
     }
 }

@@ -13,7 +13,7 @@
     </style>
 </head>
 <body>
-    <h1>STePS IT Asset Inventory — {{ $title }}</h1>
+    <h1>STePS Asset Management System — {{ $title }}</h1>
     <p class="meta">Generated on {{ now()->format('F d, Y g:ia') }} · {{ $rows->count() }} record(s)</p>
 
     <table>

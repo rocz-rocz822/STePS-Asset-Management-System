@@ -24,6 +24,7 @@ class UserController extends Controller
                 });
             })
             ->when($request->filled('role'), fn ($query) => $query->where('role', $request->role))
+            ->when($request->boolean('pending'), fn ($query) => $query->where('is_active', false)->whereNotNull('google_id'))
             ->orderBy('name')
             ->paginate(15)
             ->withQueryString();
@@ -40,16 +41,17 @@ class UserController extends Controller
 
     public function store(StoreUserRequest $request): RedirectResponse
     {
+        $canManageAssets = match ($request->role) {
+            'admin' => true,
+            'staff' => false,
+            default => $request->boolean('can_manage_assets', false),
+        };
+
         User::create([
             ...$request->validated(),
             'password' => Hash::make($request->password),
             'is_active' => $request->boolean('is_active', true),
-
-            // Admin always has asset management permission
-            'can_manage_assets' => $request->input('role') === 'admin'
-                ? true
-                : $request->boolean('can_manage_assets', false),
-
+            'can_manage_assets' => $canManageAssets,
             'email_verified_at' => now(),
         ]);
 
@@ -65,14 +67,19 @@ class UserController extends Controller
         return view('users.edit', compact('user'));
     }
 
-    public function update(UpdateUserRequest $request, User $user): RedirectResponse
-    {
+    public function update(
+        UpdateUserRequest $request,
+        User $user
+    ): RedirectResponse {
         $data = $request->safe()->except('password');
 
-        // Admin always has asset management permission
-        $data['can_manage_assets'] = $request->input('role') === 'admin'
-            ? true
-            : $request->boolean('can_manage_assets', false);
+        $canManageAssets = match ($request->role) {
+            'admin' => true,
+            'staff' => false,
+            default => $request->boolean('can_manage_assets', false),
+        };
+
+        $data['can_manage_assets'] = $canManageAssets;
 
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);
@@ -89,11 +96,18 @@ class UserController extends Controller
     {
         $this->authorize('toggleStatus', $user);
 
-        $user->update(['is_active' => ! $user->is_active]);
+        $user->update([
+            'is_active' => ! $user->is_active,
+        ]);
 
         $status = $user->is_active ? 'activated' : 'deactivated';
 
-        return redirect()->route('users.index')->with('success', "User account {$status} successfully.");
+        return redirect()
+            ->route('users.index')
+            ->with(
+                'success',
+                "User account {$status} successfully."
+            );
     }
 
     public function destroy(User $user): RedirectResponse
@@ -102,6 +116,8 @@ class UserController extends Controller
 
         $user->delete();
 
-        return redirect()->route('users.index')->with('success', 'User account deleted successfully.');
+        return redirect()
+            ->route('users.index')
+            ->with('success', 'User account deleted successfully.');
     }
 }
