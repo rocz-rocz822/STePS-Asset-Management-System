@@ -153,7 +153,16 @@
                         class="rounded border-gray-300"
                     >
 
+                    <x-input-label
+                        for="can_manage_assets"
+                        value="Can add and edit assets"
+                    />
+
                 </div>
+
+                <p class="text-xs text-gray-400 mt-1">
+                    Uncheck to give this technician view-only access to assets.
+                </p>
 
             </div>
 
