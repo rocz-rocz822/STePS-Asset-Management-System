@@ -4,7 +4,6 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
-use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
@@ -14,17 +13,6 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
 
-    // Google Login
-    Route::get('auth/google', [GoogleAuthController::class, 'redirect'])
-        ->middleware('guest')
-        ->name('auth.google');
-
-    Route::get('auth/google/callback', [GoogleAuthController::class, 'callback'])
-        ->name('auth.google.callback');
-
-    Route::get('auth/google/link', [GoogleAuthController::class, 'linkRedirect'])
-        ->middleware('auth')
-        ->name('auth.google.link');
     // Disable public registration for internal users
     // Route::get('register', [RegisteredUserController::class, 'create'])
     //     ->name('register');

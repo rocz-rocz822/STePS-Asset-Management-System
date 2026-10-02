@@ -10,34 +10,8 @@
 
     <div>
         <x-input-label for="email" value="Email Address *" />
-
-        @if ($user->google_id)
-            <x-text-input
-                id="email"
-                type="email"
-                class="mt-1 block w-full bg-gray-50 text-gray-500"
-                value="{{ $user->email }}"
-                disabled
-            />
-
-            <input type="hidden" name="email" value="{{ $user->email }}">
-
-            <p class="text-xs text-gray-400 mt-1">
-                This account signs in with Google. To change the email, unlink Google using the option below this form.
-            </p>
-        @else
-            <x-text-input
-                id="email"
-                name="email"
-                type="email"
-                class="mt-1 block w-full"
-                :value="old('email', $user->email)"
-                required
-                autocomplete="username"
-            />
-
-            <x-input-error class="mt-2" :messages="$errors->get('email')" />
-        @endif
+        <x-text-input id="email" name="email" type="email" class="mt-1 block w-full" :value="old('email', $user->email)" required autocomplete="username" />
+        <x-input-error class="mt-2" :messages="$errors->get('email')" />
 
         @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())
             <div class="mt-2">
@@ -47,7 +21,6 @@
                         Click here to re-send the verification email.
                     </button>
                 </p>
-
                 @if (session('status') === 'verification-link-sent')
                     <p class="mt-2 text-sm font-medium text-green-600">
                         A new verification link has been sent to your email address.

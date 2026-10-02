@@ -39,16 +39,6 @@
             <div>
                 <x-input-label for="email" value="Email Address *" />
 
-                @if ($user->google_id)
-                    <x-text-input id="email" type="email" class="mt-1 block w-full bg-gray-50 text-gray-500" value="{{ $user->email }}" disabled />
-                    <input type="hidden" name="email" value="{{ $user->email }}">
-                    <p class="text-xs text-gray-400 mt-1">This account is linked to Google and its email cannot be changed here.</p>
-                @else
-                    <x-text-input id="email" name="email" type="email" class="mt-1 block w-full" :value="old('email', $user->email)" required />
-                    <x-input-error :messages="$errors->get('email')" class="mt-2" />
-                @endif
-            </div>
-
             {{-- Password --}}
             <div class="grid grid-cols-2 gap-4">
 
