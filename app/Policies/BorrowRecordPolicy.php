@@ -19,15 +19,7 @@ class BorrowRecordPolicy
 
     public function create(User $user): bool
     {
-        if ($user->isAdmin()) {
-            return true;
-        }
-
-        if ($user->isStaff()) {
-            return false;
-        }
-
-        return $user->can_manage_assets;
+        return ! $user->isStaff(); // Admin and Technician only
     }
 
     public function update(User $user, BorrowRecord $record): bool
@@ -36,6 +28,6 @@ class BorrowRecordPolicy
             return true;
         }
 
-        return $record->created_by === $user->id && $user->can_manage_assets;
+        return $record->created_by === $user->id;
     }
 }

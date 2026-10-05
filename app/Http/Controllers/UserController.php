@@ -41,17 +41,10 @@ class UserController extends Controller
 
     public function store(StoreUserRequest $request): RedirectResponse
     {
-        $canManageAssets = match ($request->role) {
-            'admin' => true,
-            'staff' => false,
-            default => $request->boolean('can_manage_assets', false),
-        };
-
         User::create([
             ...$request->validated(),
             'password' => Hash::make($request->password),
             'is_active' => $request->boolean('is_active', true),
-            'can_manage_assets' => $canManageAssets,
             'email_verified_at' => now(),
         ]);
 
@@ -72,14 +65,6 @@ class UserController extends Controller
         User $user
     ): RedirectResponse {
         $data = $request->safe()->except('password');
-
-        $canManageAssets = match ($request->role) {
-            'admin' => true,
-            'staff' => false,
-            default => $request->boolean('can_manage_assets', false),
-        };
-
-        $data['can_manage_assets'] = $canManageAssets;
 
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);

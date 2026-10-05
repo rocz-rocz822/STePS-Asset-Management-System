@@ -15,8 +15,8 @@ class AssetStatusSyncTest extends TestCase
 
     public function test_borrowing_an_asset_marks_it_borrowed(): void
     {
-        $user = User::factory()->create();
-        $asset = Asset::factory()->create(['status' => 'available']);
+        $user = User::factory()->create(['role' => 'technician']);
+        $asset = Asset::factory()->create(['status' => 'available', 'assigned_to' => $user->id]);
 
         $this->actingAs($user)->post(route('borrow-records.store'), [
             'asset_id' => $asset->id,
@@ -30,10 +30,11 @@ class AssetStatusSyncTest extends TestCase
 
     public function test_returning_an_asset_reverts_status(): void
     {
-        $user = User::factory()->create();
-        $asset = Asset::factory()->create(['status' => 'borrowed']);
+        $user = User::factory()->create(['role' => 'technician']);
+        $asset = Asset::factory()->create(['status' => 'borrowed', 'assigned_to' => $user->id]);
         $borrow = BorrowRecord::factory()->create([
             'asset_id' => $asset->id,
+            'created_by' => $user->id,
             'previous_asset_status' => 'available',
             'status' => 'borrowed',
         ]);
@@ -48,11 +49,12 @@ class AssetStatusSyncTest extends TestCase
 
     public function test_completing_maintenance_reverts_asset_status(): void
     {
-        $user = User::factory()->create();
-        $asset = Asset::factory()->create(['status' => 'under_repair']);
+        $user = User::factory()->create(['role' => 'technician']);
+        $asset = Asset::factory()->create(['status' => 'under_repair', 'assigned_to' => $user->id]);
         $maintenance = MaintenanceRecord::factory()->create([
             'asset_id' => $asset->id,
             'technician_id' => $user->id,
+            'created_by' => $user->id,
             'previous_asset_status' => 'available',
             'status' => 'in_progress',
         ]);

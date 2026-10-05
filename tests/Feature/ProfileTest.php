@@ -61,39 +61,35 @@ class ProfileTest extends TestCase
         $this->assertNotNull($user->refresh()->email_verified_at);
     }
 
-    public function test_user_can_delete_their_account(): void
+    public function test_user_can_request_account_deletion(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'technician']);
 
         $response = $this
             ->actingAs($user)
-            ->delete('/profile', [
-                'password' => 'password',
+            ->post('/profile/request-deletion', [
+                'reason' => 'No longer needed',
             ]);
 
-        $response
-            ->assertSessionHasNoErrors()
-            ->assertRedirect('/');
+        $response->assertRedirect();
 
-        $this->assertGuest();
-        $this->assertNull($user->fresh());
+        $this->assertDatabaseHas('account_deletion_requests', [
+            'user_id' => $user->id,
+            'status' => 'pending',
+        ]);
+
+        // Account itself is untouched — still exists and still active.
+        $this->assertNotNull($user->fresh());
+        $this->assertTrue($user->fresh()->is_active);
     }
 
-    public function test_correct_password_must_be_provided_to_delete_account(): void
+    public function test_protected_account_cannot_request_deletion(): void
     {
-        $user = User::factory()->create();
+        $admin = User::factory()->admin()->create(['is_protected' => true]);
 
-        $response = $this
-            ->actingAs($user)
-            ->from('/profile')
-            ->delete('/profile', [
-                'password' => 'wrong-password',
-            ]);
-
-        $response
-            ->assertSessionHasErrorsIn('userDeletion', 'password')
-            ->assertRedirect('/profile');
-
-        $this->assertNotNull($user->fresh());
+        $this
+            ->actingAs($admin)
+            ->post('/profile/request-deletion')
+            ->assertForbidden();
     }
 }

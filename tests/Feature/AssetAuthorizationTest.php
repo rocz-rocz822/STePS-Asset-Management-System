@@ -14,7 +14,7 @@ class AssetAuthorizationTest extends TestCase
     public function test_technician_can_edit_own_asset(): void
     {
         $technician = User::factory()->create(['role' => 'technician']);
-        $asset = Asset::factory()->create(['created_by' => $technician->id]);
+        $asset = Asset::factory()->create(['assigned_to' => $technician->id]);
 
         $this->actingAs($technician)
             ->get(route('assets.edit', $asset))
@@ -25,7 +25,7 @@ class AssetAuthorizationTest extends TestCase
     {
         $technicianA = User::factory()->create(['role' => 'technician']);
         $technicianB = User::factory()->create(['role' => 'technician']);
-        $asset = Asset::factory()->create(['created_by' => $technicianA->id]);
+        $asset = Asset::factory()->create(['assigned_to' => $technicianA->id]);
 
         $this->actingAs($technicianB)
             ->get(route('assets.edit', $asset))
@@ -35,7 +35,7 @@ class AssetAuthorizationTest extends TestCase
     public function test_technician_cannot_delete_asset(): void
     {
         $technician = User::factory()->create(['role' => 'technician']);
-        $asset = Asset::factory()->create(['created_by' => $technician->id]);
+        $asset = Asset::factory()->create(['assigned_to' => $technician->id]);
 
         $this->actingAs($technician)
             ->delete(route('assets.destroy', $asset))
@@ -46,7 +46,7 @@ class AssetAuthorizationTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
         $technician = User::factory()->create(['role' => 'technician']);
-        $asset = Asset::factory()->create(['created_by' => $technician->id]);
+        $asset = Asset::factory()->create(['assigned_to' => $technician->id]);
 
         $this->actingAs($admin)
             ->get(route('assets.edit', $asset))

@@ -39,6 +39,21 @@
             <div>
                 <x-input-label for="email" value="Email Address *" />
 
+                <x-text-input
+                    id="email"
+                    name="email"
+                    type="email"
+                    class="mt-1 block w-full"
+                    :value="old('email', $user->email)"
+                    required
+                />
+
+                <x-input-error
+                    :messages="$errors->get('email')"
+                    class="mt-2"
+                />
+            </div>
+
             {{-- Password --}}
             <div class="grid grid-cols-2 gap-4">
 
@@ -135,66 +150,6 @@
                     class="mt-2"
                 />
 
-            </div>
-
-            {{-- Technician Asset Permission --}}
-            <div
-                x-show="role === 'technician'"
-                x-cloak
-            >
-                <div class="flex items-center gap-2">
-
-                    <input
-                        type="checkbox"
-                        id="can_manage_assets"
-                        name="can_manage_assets"
-                        value="1"
-                        @checked(old('can_manage_assets', $user->can_manage_assets))
-                        class="rounded border-gray-300"
-                    >
-
-                    <x-input-label
-                        for="can_manage_assets"
-                        value="Can add and edit assets"
-                    />
-
-                </div>
-
-                <p class="text-xs text-gray-400 mt-1">
-                    Uncheck to give this technician view-only access to assets.
-                </p>
-
-            </div>
-
-            {{-- Administrator Information --}}
-            <div
-                x-show="role === 'admin'"
-                x-cloak
-                class="bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3"
-            >
-                <p class="text-sm text-yellow-800 font-medium">
-                    Asset access setting not applicable
-                </p>
-
-                <p class="text-xs text-yellow-700 mt-1">
-                    Administrators always have full asset access.
-                </p>
-            </div>
-
-            {{-- Staff Information --}}
-            <div
-                x-show="role === 'staff'"
-                x-cloak
-                class="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3"
-            >
-                <p class="text-sm text-blue-800 font-medium">
-                    Asset access setting not applicable
-                </p>
-
-                <p class="text-xs text-blue-700 mt-1">
-                    Staff automatically see and manage only the assets
-                    assigned to them — this doesn't need to be configured.
-                </p>
             </div>
 
             {{-- Buttons --}}

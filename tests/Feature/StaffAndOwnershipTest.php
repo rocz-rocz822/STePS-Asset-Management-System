@@ -37,13 +37,23 @@ class StaffAndOwnershipTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_staff_cannot_edit_even_their_own_asset(): void
+    public function test_staff_can_edit_their_own_assigned_asset(): void
     {
         $staff = User::factory()->create(['role' => 'staff']);
         $myAsset = Asset::factory()->create(['assigned_to' => $staff->id]);
 
         $this->actingAs($staff)
             ->get(route('assets.edit', $myAsset))
+            ->assertOk();
+    }
+
+    public function test_staff_cannot_edit_asset_not_assigned_to_them(): void
+    {
+        $staff = User::factory()->create(['role' => 'staff']);
+        $otherAsset = Asset::factory()->create(['assigned_to' => null]);
+
+        $this->actingAs($staff)
+            ->get(route('assets.edit', $otherAsset))
             ->assertForbidden();
     }
 
@@ -52,7 +62,7 @@ class StaffAndOwnershipTest extends TestCase
     public function test_technician_can_edit_asset_assigned_to_them_even_if_created_by_someone_else(): void
     {
         $admin = User::factory()->admin()->create();
-        $technician = User::factory()->create(['role' => 'technician', 'can_manage_assets' => true]);
+        $technician = User::factory()->create(['role' => 'technician']);
 
         $asset = Asset::factory()->create([
             'created_by' => $admin->id,
@@ -66,7 +76,7 @@ class StaffAndOwnershipTest extends TestCase
 
     public function test_technician_cannot_edit_asset_they_created_but_is_assigned_to_someone_else(): void
     {
-        $technician = User::factory()->create(['role' => 'technician', 'can_manage_assets' => true]);
+        $technician = User::factory()->create(['role' => 'technician']);
         $otherUser = User::factory()->create(['role' => 'technician']);
 
         $asset = Asset::factory()->create([
@@ -79,9 +89,9 @@ class StaffAndOwnershipTest extends TestCase
             ->assertForbidden();
     }
 
-    // --- Borrowing/Maintenance scoped to assigned assets ---
+    // --- Borrowing is Admin/Technician only, Staff is blocked entirely ---
 
-    public function test_staff_can_log_borrow_for_their_own_assigned_asset(): void
+    public function test_staff_cannot_create_borrow_records_at_all(): void
     {
         $staff = User::factory()->create(['role' => 'staff']);
         $asset = Asset::factory()->create(['assigned_to' => $staff->id, 'status' => 'available']);
@@ -93,16 +103,41 @@ class StaffAndOwnershipTest extends TestCase
             'expected_return_date' => now()->addDays(3)->format('Y-m-d'),
         ]);
 
+        $response->assertForbidden();
+        $this->assertDatabaseMissing('borrow_records', ['asset_id' => $asset->id]);
+    }
+
+    public function test_staff_cannot_view_borrow_records_index(): void
+    {
+        $staff = User::factory()->create(['role' => 'staff']);
+
+        $this->actingAs($staff)
+            ->get(route('borrow-records.index'))
+            ->assertForbidden();
+    }
+
+    public function test_technician_can_log_borrow_for_an_assigned_asset(): void
+    {
+        $technician = User::factory()->create(['role' => 'technician']);
+        $asset = Asset::factory()->create(['assigned_to' => $technician->id, 'status' => 'available']);
+
+        $response = $this->actingAs($technician)->post(route('borrow-records.store'), [
+            'asset_id' => $asset->id,
+            'borrower_name' => 'Test Borrower',
+            'borrow_date' => now()->format('Y-m-d'),
+            'expected_return_date' => now()->addDays(3)->format('Y-m-d'),
+        ]);
+
         $response->assertRedirect(route('borrow-records.index'));
         $this->assertDatabaseHas('borrow_records', ['asset_id' => $asset->id]);
     }
 
-    public function test_staff_cannot_log_borrow_for_asset_not_assigned_to_them(): void
+    public function test_technician_cannot_log_borrow_for_asset_not_assigned_to_them(): void
     {
-        $staff = User::factory()->create(['role' => 'staff']);
+        $technician = User::factory()->create(['role' => 'technician']);
         $asset = Asset::factory()->create(['assigned_to' => null, 'status' => 'available']);
 
-        $response = $this->actingAs($staff)->post(route('borrow-records.store'), [
+        $response = $this->actingAs($technician)->post(route('borrow-records.store'), [
             'asset_id' => $asset->id,
             'borrower_name' => 'Test Borrower',
             'borrow_date' => now()->format('Y-m-d'),
@@ -112,6 +147,8 @@ class StaffAndOwnershipTest extends TestCase
         $response->assertSessionHasErrors('asset_id');
         $this->assertDatabaseMissing('borrow_records', ['asset_id' => $asset->id]);
     }
+
+    // --- Maintenance is open to everyone, scoped to assigned assets for non-admins ---
 
     public function test_staff_can_log_maintenance_for_their_own_assigned_asset(): void
     {
@@ -162,7 +199,7 @@ class StaffAndOwnershipTest extends TestCase
 
     public function test_technician_cannot_use_force_status(): void
     {
-        $technician = User::factory()->create(['role' => 'technician', 'can_manage_assets' => true]);
+        $technician = User::factory()->create(['role' => 'technician']);
         $asset = Asset::factory()->create(['status' => 'lost']);
 
         $this->actingAs($technician)

@@ -19,11 +19,7 @@ class MaintenanceRecordPolicy
 
     public function create(User $user): bool
     {
-        if ($user->isAdmin() || $user->isStaff()) {
-            return true;
-        }
-
-        return $user->can_manage_assets;
+        return true; // Admin, Technician, and Staff can all log maintenance
     }
 
     public function update(User $user, MaintenanceRecord $record): bool
@@ -32,6 +28,6 @@ class MaintenanceRecordPolicy
             return true;
         }
 
-        return $record->created_by === $user->id && ($user->isStaff() || $user->can_manage_assets);
+        return $record->created_by === $user->id;
     }
 }

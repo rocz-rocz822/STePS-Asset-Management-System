@@ -1,308 +1,275 @@
-<x-layouts.app title="User Management"> <x-page-heading
-    title="User Management"
-    subtitle="Manage IT department staff accounts."
-/>
+<x-layouts.app title="User Management">
 
-<div class="bg-white rounded-xl border border-gray-100 shadow-sm">
+    <x-page-heading
+        title="User Management"
+        subtitle="Manage IT department staff accounts."
+    />
 
-    <div class="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm">
 
-        <form method="GET" class="flex gap-2 flex-1 max-w-md">
+        <div class="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
 
-            <input
-                type="text"
-                name="search"
-                value="{{ request('search') }}"
-                placeholder="Search name or email..."
-                class="w-full rounded-lg border-gray-300 text-sm focus:border-slate-500 focus:ring-slate-500"
-            >
+            <form method="GET" class="flex gap-2 flex-1 max-w-md">
 
-            <select
-                name="role"
-                class="rounded-lg border-gray-300 text-sm"
-            >
-                <option value="">
-                    All Roles
-                </option>
-
-                <option
-                    value="admin"
-                    @selected(request('role') === 'admin')
+                <input
+                    type="text"
+                    name="search"
+                    value="{{ request('search') }}"
+                    placeholder="Search name or email..."
+                    class="w-full rounded-lg border-gray-300 text-sm focus:border-slate-500 focus:ring-slate-500"
                 >
-                    Admin
-                </option>
 
-                <option
-                    value="technician"
-                    @selected(request('role') === 'technician')
+                <select
+                    name="role"
+                    class="rounded-lg border-gray-300 text-sm"
                 >
-                    Technician
-                </option>
+                    <option value="">
+                        All Roles
+                    </option>
 
-                <option
-                    value="staff"
-                    @selected(request('role') === 'staff')
+                    <option
+                        value="admin"
+                        @selected(request('role') === 'admin')
+                    >
+                        Admin
+                    </option>
+
+                    <option
+                        value="technician"
+                        @selected(request('role') === 'technician')
+                    >
+                        Technician
+                    </option>
+
+                    <option
+                        value="staff"
+                        @selected(request('role') === 'staff')
+                    >
+                        Staff
+                    </option>
+                </select>
+
+                <button
+                    class="px-3 py-2 bg-gray-100 rounded-lg text-sm font-medium hover:bg-gray-200"
                 >
-                    Staff
-                </option>
-            </select>
+                    Filter
+                </button>
 
-            <button
-                class="px-3 py-2 bg-gray-100 rounded-lg text-sm font-medium hover:bg-gray-200"
-            >
-                Filter
-            </button>
+            </form>
 
-        </form>
+            <div class="flex gap-2">
 
-        <div class="flex gap-2">
+                @if (! request('pending'))
 
-            @if (! request('pending'))
+                    <a
+                        href="{{ route('users.index', ['pending' => 1]) }}"
+                        class="inline-flex items-center justify-center px-4 py-2 bg-yellow-50 text-yellow-700 text-sm font-medium rounded-lg hover:bg-yellow-100"
+                    >
+                        Pending Approvals
+                    </a>
+
+                @else
+
+                    <a
+                        href="{{ route('users.index') }}"
+                        class="inline-flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200"
+                    >
+                        Show All
+                    </a>
+
+                @endif
 
                 <a
-                    href="{{ route('users.index', ['pending' => 1]) }}"
-                    class="inline-flex items-center justify-center px-4 py-2 bg-yellow-50 text-yellow-700 text-sm font-medium rounded-lg hover:bg-yellow-100"
+                    href="{{ route('users.create') }}"
+                    class="inline-flex items-center justify-center px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800"
                 >
-                    Pending Approvals
+                    + Add User
                 </a>
 
-            @else
-
-                <a
-                    href="{{ route('users.index') }}"
-                    class="inline-flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200"
-                >
-                    Show All
-                </a>
-
-            @endif
-
-            <a
-                href="{{ route('users.create') }}"
-                class="inline-flex items-center justify-center px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800"
-            >
-                + Add User
-            </a>
+            </div>
 
         </div>
 
-    </div>
+        @if (request('pending'))
 
-    @if (request('pending'))
+            <div class="px-4 py-2.5 bg-yellow-50 border-b border-yellow-200 text-sm text-yellow-800">
+                Showing accounts that signed up via Google and are awaiting activation.
+            </div>
 
-        <div class="px-4 py-2.5 bg-yellow-50 border-b border-yellow-200 text-sm text-yellow-800">
-            Showing accounts that signed up via Google and are awaiting activation.
-        </div>
+        @endif
 
-    @endif
+        <div class="overflow-x-auto">
 
-    <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-100">
 
-        <table class="min-w-full divide-y divide-gray-100">
-
-            <thead class="bg-gray-50">
-
-                <tr>
-
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Name
-                    </th>
-
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Email
-                    </th>
-
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Role
-                    </th>
-
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Asset Access
-                    </th>
-
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Status
-                    </th>
-
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                        Actions
-                    </th>
-
-                </tr>
-
-            </thead>
-
-            <tbody class="divide-y divide-gray-100">
-
-                @forelse ($users as $user)
+                <thead class="bg-gray-50">
 
                     <tr>
 
-                        {{-- Name --}}
-                        <td class="px-4 py-3 text-sm font-medium text-gray-900">
-                            {{ $user->name }}
-                        </td>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                            Name
+                        </th>
 
-                        {{-- Email --}}
-                        <td class="px-4 py-3 text-sm text-gray-500">
-                            {{ $user->email }}
-                        </td>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                            Email
+                        </th>
 
-                        {{-- Role --}}
-                        <td class="px-4 py-3 text-sm text-gray-500 capitalize">
-                            {{ $user->role }}
-                        </td>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                            Role
+                        </th>
 
-                        {{-- Asset Access --}}
-                        <td class="px-4 py-3 text-sm">
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                            Status
+                        </th>
 
-                            @if ($user->isAdmin())
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                            Actions
+                        </th>
 
-                                <x-badge color="gray">
-                                    Full (Admin)
-                                </x-badge>
+                    </tr>
 
-                            @elseif ($user->isStaff())
+                </thead>
 
-                                <x-badge color="blue">
-                                    Own Assets Only
-                                </x-badge>
+                <tbody class="divide-y divide-gray-100">
 
-                            @elseif ($user->can_manage_assets)
+                    @forelse ($users as $user)
 
-                                <x-badge color="green">
-                                    Add/Edit
-                                </x-badge>
+                        <tr>
 
-                            @else
+                            {{-- Name --}}
+                            <td class="px-4 py-3 text-sm font-medium text-gray-900">
+                                {{ $user->name }}
+                            </td>
 
-                                <x-badge color="yellow">
-                                    View Only
-                                </x-badge>
+                            {{-- Email --}}
+                            <td class="px-4 py-3 text-sm text-gray-500">
+                                {{ $user->email }}
+                            </td>
 
-                            @endif
+                            {{-- Role --}}
+                            <td class="px-4 py-3 text-sm text-gray-500 capitalize">
+                                {{ $user->role }}
+                            </td>
 
-                        </td>
+                            {{-- Status --}}
+                            <td class="px-4 py-3 text-sm">
 
-                        {{-- Status --}}
-                        <td class="px-4 py-3 text-sm">
+                                @if ($user->is_active)
 
-                            @if ($user->is_active)
-
-                                <x-badge color="green">
-                                    Active
-                                </x-badge>
-
-                            @else
-
-                                <x-badge color="red">
-                                    Inactive
-                                </x-badge>
-
-                            @endif
-
-                        </td>
-
-                        {{-- Actions --}}
-                        <td class="px-4 py-3 text-right text-sm space-x-3">
-
-                            @if ($user->is_protected && $user->id !== auth()->id())
-
-                                <span class="text-gray-400 text-xs">
-                                    No actions available
-                                </span>
-
-                            @else
-
-                                {{-- Edit --}}
-                                <a
-                                    href="{{ route('users.edit', $user) }}"
-                                    class="text-slate-700 hover:text-slate-900 font-medium"
-                                >
-                                    Edit
-                                </a>
-
-                                @if ($user->is_protected)
-
-                                    <x-badge color="gray">
-                                        Protected
+                                    <x-badge color="green">
+                                        Active
                                     </x-badge>
 
                                 @else
 
-                                    {{-- Toggle Status --}}
-                                    @can('toggleStatus', $user)
-
-                                        <form
-                                            method="POST"
-                                            action="{{ route('users.toggle-status', $user) }}"
-                                            class="inline"
-                                        >
-                                            @csrf
-                                            @method('PATCH')
-
-                                            <button
-                                                class="text-yellow-700 hover:text-yellow-900 font-medium"
-                                            >
-                                                {{ $user->is_active ? 'Deactivate' : 'Activate' }}
-                                            </button>
-
-                                        </form>
-
-                                    @endcan
-
-                                    {{-- Delete --}}
-                                    @can('delete', $user)
-
-                                        <button
-                                            type="button"
-                                            @click="$dispatch('open-modal-delete-user-{{ $user->id }}')"
-                                            class="text-red-600 hover:text-red-800 font-medium"
-                                        >
-                                            Delete
-                                        </button>
-
-                                        <x-confirm-modal
-                                            id="delete-user-{{ $user->id }}"
-                                            title="Delete this user account?"
-                                            message="{{ $user->name }} will lose access immediately. This cannot be undone."
-                                            :action="route('users.destroy', $user)"
-                                        />
-
-                                    @endcan
+                                    <x-badge color="red">
+                                        Inactive
+                                    </x-badge>
 
                                 @endif
 
-                            @endif
+                            </td>
 
-                        </td>
+                            {{-- Actions --}}
+                            <td class="px-4 py-3 text-right text-sm space-x-3">
 
-                    </tr>
+                                @if ($user->is_protected && $user->id !== auth()->id())
 
-                @empty
+                                    <span class="text-gray-400 text-xs">
+                                        No actions available
+                                    </span>
 
-                    <tr>
+                                @else
 
-                        <td colspan="6">
+                                    {{-- Edit --}}
+                                    <a
+                                        href="{{ route('users.edit', $user) }}"
+                                        class="text-slate-700 hover:text-slate-900 font-medium"
+                                    >
+                                        Edit
+                                    </a>
 
-                            <x-empty-state title="No users found" />
+                                    @if ($user->is_protected)
 
-                        </td>
+                                        <x-badge color="gray">
+                                            Protected
+                                        </x-badge>
 
-                    </tr>
+                                    @else
 
-                @endforelse
+                                        {{-- Toggle Status --}}
+                                        @can('toggleStatus', $user)
 
-            </tbody>
+                                            <form
+                                                method="POST"
+                                                action="{{ route('users.toggle-status', $user) }}"
+                                                class="inline"
+                                            >
+                                                @csrf
+                                                @method('PATCH')
 
-        </table>
+                                                <button
+                                                    class="text-yellow-700 hover:text-yellow-900 font-medium"
+                                                >
+                                                    {{ $user->is_active ? 'Deactivate' : 'Activate' }}
+                                                </button>
+
+                                            </form>
+
+                                        @endcan
+
+                                        {{-- Delete --}}
+                                        @can('delete', $user)
+
+                                            <button
+                                                type="button"
+                                                @click="$dispatch('open-modal-delete-user-{{ $user->id }}')"
+                                                class="text-red-600 hover:text-red-800 font-medium"
+                                            >
+                                                Delete
+                                            </button>
+
+                                            <x-confirm-modal
+                                                id="delete-user-{{ $user->id }}"
+                                                title="Delete this user account?"
+                                                message="{{ $user->name }} will lose access immediately. This cannot be undone."
+                                                :action="route('users.destroy', $user)"
+                                            />
+
+                                        @endcan
+
+                                    @endif
+
+                                @endif
+
+                            </td>
+
+                        </tr>
+
+                    @empty
+
+                        <tr>
+
+                            <td colspan="5">
+
+                                <x-empty-state title="No users found" />
+
+                            </td>
+
+                        </tr>
+
+                    @endforelse
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        <div class="p-4 border-t border-gray-100">
+            {{ $users->links() }}
+        </div>
 
     </div>
-
-    <div class="p-4 border-t border-gray-100">
-        {{ $users->links() }}
-    </div>
-
-</div>
 
 </x-layouts.app>

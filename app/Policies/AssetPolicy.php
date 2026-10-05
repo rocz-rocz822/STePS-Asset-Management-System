@@ -19,11 +19,7 @@ class AssetPolicy
 
     public function create(User $user): bool
     {
-        if ($user->isStaff()) {
-            return true; // Staff can add assets, always assigned to themselves
-        }
-
-        return $user->isAdmin() || $user->can_manage_assets;
+        return true; // Admin, Technician, and Staff can all add assets
     }
 
     public function update(User $user, Asset $asset): bool
@@ -32,11 +28,8 @@ class AssetPolicy
             return true;
         }
 
-        if ($user->isStaff()) {
-            return $asset->assigned_to === $user->id;
-        }
-
-        return $user->can_manage_assets && $asset->assigned_to === $user->id;
+        // Technician and Staff: only assets assigned to them
+        return $asset->assigned_to === $user->id;
     }
 
     public function delete(User $user, Asset $asset): bool
