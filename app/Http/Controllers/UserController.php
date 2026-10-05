@@ -24,7 +24,6 @@ class UserController extends Controller
                 });
             })
             ->when($request->filled('role'), fn ($query) => $query->where('role', $request->role))
-            ->when($request->boolean('pending'), fn ($query) => $query->where('is_active', false)->whereNotNull('google_id'))
             ->orderBy('name')
             ->paginate(15)
             ->withQueryString();

@@ -57,46 +57,14 @@
 
             </form>
 
-            <div class="flex gap-2">
-
-                @if (! request('pending'))
-
-                    <a
-                        href="{{ route('users.index', ['pending' => 1]) }}"
-                        class="inline-flex items-center justify-center px-4 py-2 bg-yellow-50 text-yellow-700 text-sm font-medium rounded-lg hover:bg-yellow-100"
-                    >
-                        Pending Approvals
-                    </a>
-
-                @else
-
-                    <a
-                        href="{{ route('users.index') }}"
-                        class="inline-flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200"
-                    >
-                        Show All
-                    </a>
-
-                @endif
-
-                <a
-                    href="{{ route('users.create') }}"
-                    class="inline-flex items-center justify-center px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800"
-                >
-                    + Add User
-                </a>
-
-            </div>
+            <a
+                href="{{ route('users.create') }}"
+                class="inline-flex items-center justify-center px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800"
+            >
+                + Add User
+            </a>
 
         </div>
-
-        @if (request('pending'))
-
-            <div class="px-4 py-2.5 bg-yellow-50 border-b border-yellow-200 text-sm text-yellow-800">
-                Showing accounts that signed up via Google and are awaiting activation.
-            </div>
-
-        @endif
 
         <div class="overflow-x-auto">
 
@@ -136,22 +104,18 @@
 
                         <tr>
 
-                            {{-- Name --}}
                             <td class="px-4 py-3 text-sm font-medium text-gray-900">
                                 {{ $user->name }}
                             </td>
 
-                            {{-- Email --}}
                             <td class="px-4 py-3 text-sm text-gray-500">
                                 {{ $user->email }}
                             </td>
 
-                            {{-- Role --}}
                             <td class="px-4 py-3 text-sm text-gray-500 capitalize">
                                 {{ $user->role }}
                             </td>
 
-                            {{-- Status --}}
                             <td class="px-4 py-3 text-sm">
 
                                 @if ($user->is_active)
@@ -170,7 +134,6 @@
 
                             </td>
 
-                            {{-- Actions --}}
                             <td class="px-4 py-3 text-right text-sm space-x-3">
 
                                 @if ($user->is_protected && $user->id !== auth()->id())
@@ -181,7 +144,6 @@
 
                                 @else
 
-                                    {{-- Edit --}}
                                     <a
                                         href="{{ route('users.edit', $user) }}"
                                         class="text-slate-700 hover:text-slate-900 font-medium"
@@ -197,7 +159,6 @@
 
                                     @else
 
-                                        {{-- Toggle Status --}}
                                         @can('toggleStatus', $user)
 
                                             <form
@@ -218,7 +179,6 @@
 
                                         @endcan
 
-                                        {{-- Delete --}}
                                         @can('delete', $user)
 
                                             <button
