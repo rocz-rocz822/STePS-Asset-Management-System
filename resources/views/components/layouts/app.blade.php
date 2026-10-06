@@ -51,41 +51,6 @@
 
     @endif
 
-    @auth
-    <script>
-        (function () {
-            const TIMEOUT_MS = 60 * 1000; // 1 minute
-            let idleTimer;
-
-            function logout() {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = "{{ route('logout') }}";
-
-                const csrf = document.createElement('input');
-                csrf.type = 'hidden';
-                csrf.name = '_token';
-                csrf.value = "{{ csrf_token() }}";
-                form.appendChild(csrf);
-
-                document.body.appendChild(form);
-                form.submit();
-            }
-
-            function resetTimer() {
-                clearTimeout(idleTimer);
-                idleTimer = setTimeout(logout, TIMEOUT_MS);
-            }
-
-            ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click'].forEach(function (event) {
-                document.addEventListener(event, resetTimer, { passive: true });
-            });
-
-            resetTimer();
-        })();
-    </script>
-    @endauth
-
     @stack('scripts')
 
 </body>

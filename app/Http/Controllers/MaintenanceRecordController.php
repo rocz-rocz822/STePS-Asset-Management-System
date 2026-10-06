@@ -20,11 +20,30 @@ class MaintenanceRecordController extends Controller
 
         $records = MaintenanceRecord::query()
             ->with(['asset', 'technician', 'creator'])
+            ->when(
+                ! $request->user()->isAdmin(),
+                fn ($q) => $q->whereHas(
+                    'asset',
+                    fn ($aq) => $aq->where('assigned_to', $request->user()->id)
+                )
+            )
             ->search($request->search)
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
-            ->when($request->filled('asset_id'), fn ($q) => $q->where('asset_id', $request->asset_id))
-            ->when($request->filled('created_by'), fn ($q) => $q->where('created_by', $request->created_by))
-            ->when($request->boolean('mine'), fn ($q) => $q->where('created_by', auth()->id()))
+            ->when(
+                $request->filled('status'),
+                fn ($q) => $q->where('status', $request->status)
+            )
+            ->when(
+                $request->filled('asset_id'),
+                fn ($q) => $q->where('asset_id', $request->asset_id)
+            )
+            ->when(
+                $request->filled('created_by'),
+                fn ($q) => $q->where('created_by', $request->created_by)
+            )
+            ->when(
+                $request->boolean('mine'),
+                fn ($q) => $q->where('created_by', auth()->id())
+            )
             ->latest('maintenance_date')
             ->paginate(15)
             ->withQueryString();
@@ -44,7 +63,10 @@ class MaintenanceRecordController extends Controller
         $this->authorize('create', MaintenanceRecord::class);
 
         $assets = Asset::query()
-            ->when(! $request->user()->isAdmin(), fn ($q) => $q->where('assigned_to', $request->user()->id))
+            ->when(
+                ! $request->user()->isAdmin(),
+                fn ($q) => $q->where('assigned_to', $request->user()->id)
+            )
             ->orderBy('name')
             ->get();
 
@@ -55,7 +77,11 @@ class MaintenanceRecordController extends Controller
 
         $preselectedAssetId = $request->integer('asset_id') ?: null;
 
-        return view('maintenance-records.create', compact('assets', 'technicians', 'preselectedAssetId'));
+        return view('maintenance-records.create', compact(
+            'assets',
+            'technicians',
+            'preselectedAssetId'
+        ));
     }
 
     public function store(StoreMaintenanceRequest $request): RedirectResponse
@@ -71,30 +97,43 @@ class MaintenanceRecordController extends Controller
                 'created_by' => auth()->id(),
             ]);
 
-            if (in_array($request->status, ['pending', 'in_progress']) && $request->resulting_asset_status) {
-                $asset->update(['status' => $request->resulting_asset_status, 'updated_by' => auth()->id()]);
+            if (
+                in_array($request->status, ['pending', 'in_progress'])
+                && $request->resulting_asset_status
+            ) {
+                $asset->update([
+                    'status' => $request->resulting_asset_status,
+                    'updated_by' => auth()->id(),
+                ]);
             }
 
             $this->storeAttachments($request, $record);
         });
 
-        return redirect()->route('maintenance-records.index')->with('success', 'Maintenance record created successfully.');
+        return redirect()
+            ->route('maintenance-records.index')
+            ->with('success', 'Maintenance record created successfully.');
     }
 
-        public function edit(MaintenanceRecord $maintenanceRecord): View
-        {
-            $this->authorize('update', $maintenanceRecord);
-
-            $technicians = User::whereIn('role', ['admin', 'technician'])
-                ->where('is_active', true)
-                ->orderBy('name')
-                ->get();
-
-            return view('maintenance-records.edit', ['record' => $maintenanceRecord, 'technicians' => $technicians]);
-        }
-
-    public function update(UpdateMaintenanceRequest $request, MaintenanceRecord $maintenanceRecord): RedirectResponse
+    public function edit(MaintenanceRecord $maintenanceRecord): View
     {
+        $this->authorize('update', $maintenanceRecord);
+
+        $technicians = User::whereIn('role', ['admin', 'technician'])
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        return view('maintenance-records.edit', [
+            'record' => $maintenanceRecord,
+            'technicians' => $technicians,
+        ]);
+    }
+
+    public function update(
+        UpdateMaintenanceRequest $request,
+        MaintenanceRecord $maintenanceRecord
+    ): RedirectResponse {
         $technician = User::findOrFail($request->technician_id);
 
         DB::transaction(function () use ($request, $maintenanceRecord, $technician) {
@@ -103,8 +142,14 @@ class MaintenanceRecordController extends Controller
                 'technician_name' => $technician->name,
             ]);
 
-            if (in_array($request->status, ['pending', 'in_progress']) && $request->resulting_asset_status) {
-                $maintenanceRecord->asset->update(['status' => $request->resulting_asset_status, 'updated_by' => auth()->id()]);
+            if (
+                in_array($request->status, ['pending', 'in_progress'])
+                && $request->resulting_asset_status
+            ) {
+                $maintenanceRecord->asset->update([
+                    'status' => $request->resulting_asset_status,
+                    'updated_by' => auth()->id(),
+                ]);
             } elseif (in_array($request->status, ['completed', 'cancelled'])) {
                 $maintenanceRecord->asset->update([
                     'status' => $maintenanceRecord->previous_asset_status ?? 'available',
@@ -115,11 +160,15 @@ class MaintenanceRecordController extends Controller
             $this->storeAttachments($request, $maintenanceRecord);
         });
 
-        return redirect()->route('maintenance-records.index')->with('success', 'Maintenance record updated successfully.');
+        return redirect()
+            ->route('maintenance-records.index')
+            ->with('success', 'Maintenance record updated successfully.');
     }
 
-    private function storeAttachments(Request $request, MaintenanceRecord $record): void
-    {
+    private function storeAttachments(
+        Request $request,
+        MaintenanceRecord $record
+    ): void {
         if (! $request->hasFile('attachments')) {
             return;
         }

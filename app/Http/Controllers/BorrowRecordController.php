@@ -21,11 +21,30 @@ class BorrowRecordController extends Controller
 
         $records = BorrowRecord::query()
             ->with(['asset', 'creator'])
+            ->when(
+                ! $request->user()->isAdmin(),
+                fn ($q) => $q->whereHas(
+                    'asset',
+                    fn ($aq) => $aq->where('assigned_to', $request->user()->id)
+                )
+            )
             ->search($request->search)
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
-            ->when($request->filled('asset_id'), fn ($q) => $q->where('asset_id', $request->asset_id))
-            ->when($request->filled('created_by'), fn ($q) => $q->where('created_by', $request->created_by))
-            ->when($request->boolean('mine'), fn ($q) => $q->where('created_by', auth()->id()))
+            ->when(
+                $request->filled('status'),
+                fn ($q) => $q->where('status', $request->status)
+            )
+            ->when(
+                $request->filled('asset_id'),
+                fn ($q) => $q->where('asset_id', $request->asset_id)
+            )
+            ->when(
+                $request->filled('created_by'),
+                fn ($q) => $q->where('created_by', $request->created_by)
+            )
+            ->when(
+                $request->boolean('mine'),
+                fn ($q) => $q->where('created_by', auth()->id())
+            )
             ->latest('borrow_date')
             ->paginate(15)
             ->withQueryString();
@@ -44,17 +63,27 @@ class BorrowRecordController extends Controller
     {
         $this->authorize('create', BorrowRecord::class);
 
-        $assets = Asset::where('status', 'available')->orderBy('name')->get();
+        $assets = Asset::where('status', 'available')
+            ->orderBy('name')
+            ->get();
+
         $preselectedAssetId = $request->integer('asset_id') ?: null;
 
-        return view('borrow-records.create', compact('assets', 'preselectedAssetId'));
+        return view('borrow-records.create', compact(
+            'assets',
+            'preselectedAssetId'
+        ));
     }
 
     public function store(StoreBorrowRequest $request): RedirectResponse
     {
         $asset = Asset::findOrFail($request->asset_id);
 
-        abort_if($asset->status !== \App\Enums\AssetStatus::Available, 422, 'This asset is not currently available to borrow.');
+        abort_if(
+            $asset->status !== \App\Enums\AssetStatus::Available,
+            422,
+            'This asset is not currently available to borrow.'
+        );
 
         DB::transaction(function () use ($request, $asset) {
             BorrowRecord::create([
@@ -64,33 +93,49 @@ class BorrowRecordController extends Controller
                 'created_by' => auth()->id(),
             ]);
 
-            $asset->update(['status' => 'borrowed', 'updated_by' => auth()->id()]);
+            $asset->update([
+                'status' => 'borrowed',
+                'updated_by' => auth()->id(),
+            ]);
         });
 
-        return redirect()->route('borrow-records.index')->with('success', 'Borrow record created and asset marked as borrowed.');
+        return redirect()
+            ->route('borrow-records.index')
+            ->with(
+                'success',
+                'Borrow record created and asset marked as borrowed.'
+            );
     }
 
     public function edit(BorrowRecord $borrowRecord): View
     {
         $this->authorize('update', $borrowRecord);
 
-        return view('borrow-records.edit', ['record' => $borrowRecord]);
+        return view('borrow-records.edit', [
+            'record' => $borrowRecord,
+        ]);
     }
 
-    public function update(UpdateBorrowRequest $request, BorrowRecord $borrowRecord): RedirectResponse
-    {
+    public function update(
+        UpdateBorrowRequest $request,
+        BorrowRecord $borrowRecord
+    ): RedirectResponse {
         DB::transaction(function () use ($request, $borrowRecord) {
             $borrowRecord->update($request->validated());
 
             // Only revert the asset's status if this borrow is being closed out.
             if (in_array($request->status, ['returned', 'lost'])) {
                 $borrowRecord->asset->update([
-                    'status' => $request->status === 'lost' ? 'lost' : ($borrowRecord->previous_asset_status ?? 'available'),
+                    'status' => $request->status === 'lost'
+                        ? 'lost'
+                        : ($borrowRecord->previous_asset_status ?? 'available'),
                     'updated_by' => auth()->id(),
                 ]);
             }
         });
 
-        return redirect()->route('borrow-records.index')->with('success', 'Borrow record updated successfully.');
+        return redirect()
+            ->route('borrow-records.index')
+            ->with('success', 'Borrow record updated successfully.');
     }
 }
