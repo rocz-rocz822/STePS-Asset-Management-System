@@ -92,4 +92,101 @@ class ProfileTest extends TestCase
             ->post('/profile/request-deletion')
             ->assertForbidden();
     }
+
+    public function test_admin_can_approve_a_deletion_request(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $user = User::factory()->create([
+            'role' => 'technician',
+            'is_active' => true,
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->post('/profile/request-deletion', [
+                'reason' => 'Leaving the department',
+            ]);
+
+        $deletionRequest = \App\Models\AccountDeletionRequest::where(
+            'user_id',
+            $user->id
+        )->first();
+
+        $response = $this
+            ->actingAs($admin)
+            ->post(
+                route('account-deletion-requests.approve', $deletionRequest)
+            );
+
+        $response->assertRedirect();
+
+        $this->assertFalse($user->fresh()->is_active);
+        $this->assertEquals(
+            'approved',
+            $deletionRequest->fresh()->status
+        );
+
+        // Confirm the account still exists — never deleted.
+        $this->assertNotNull($user->fresh());
+    }
+
+    public function test_admin_can_deny_a_deletion_request(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $user = User::factory()->create([
+            'role' => 'technician',
+            'is_active' => true,
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->post('/profile/request-deletion', [
+                'reason' => 'Changed my mind later',
+            ]);
+
+        $deletionRequest = \App\Models\AccountDeletionRequest::where(
+            'user_id',
+            $user->id
+        )->first();
+
+        $response = $this
+            ->actingAs($admin)
+            ->post(
+                route('account-deletion-requests.deny', $deletionRequest),
+                [
+                    'review_note' => 'Please discuss with your supervisor first.',
+                ]
+            );
+
+        $response->assertRedirect();
+
+        $this->assertTrue($user->fresh()->is_active);
+        $this->assertEquals(
+            'denied',
+            $deletionRequest->fresh()->status
+        );
+    }
+
+    public function test_admin_cannot_approve_deletion_for_a_protected_account(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $protectedAdmin = User::factory()->admin()->create([
+            'is_protected' => true,
+        ]);
+
+        $deletionRequest = \App\Models\AccountDeletionRequest::create([
+            'user_id' => $protectedAdmin->id,
+            'status' => 'pending',
+        ]);
+
+        $this
+            ->actingAs($admin)
+            ->post(
+                route('account-deletion-requests.approve', $deletionRequest)
+            )
+            ->assertForbidden();
+
+        $this->assertTrue($protectedAdmin->fresh()->is_active);
+    }
 }
