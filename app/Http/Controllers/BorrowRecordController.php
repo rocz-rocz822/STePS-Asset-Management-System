@@ -64,6 +64,10 @@ class BorrowRecordController extends Controller
         $this->authorize('create', BorrowRecord::class);
 
         $assets = Asset::where('status', 'available')
+            ->when(
+                ! $request->user()->isAdmin(),
+                fn ($q) => $q->where('assigned_to', $request->user()->id)
+            )
             ->orderBy('name')
             ->get();
 
