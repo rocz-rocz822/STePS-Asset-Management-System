@@ -14,7 +14,7 @@ class AdminUserSeeder extends Seeder
             ['email' => 'admin@steps.com'],
             [
                 'name' => 'System Administrator',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('Steps@1234!A'),
                 'role' => 'admin',
                 'is_active' => true,
                 'is_protected' => true,
