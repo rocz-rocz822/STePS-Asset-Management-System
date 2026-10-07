@@ -1,5 +1,9 @@
 <x-layouts.app title="Dashboard">
-    <x-page-heading title="Dashboard" subtitle="Welcome back, {{ auth()->user()->name }}." />
+    <x-page-heading
+    title="Dashboard"
+    :subtitle="auth()->user()->isAdmin()
+        ? 'Welcome back, ' . auth()->user()->name . '. Department-wide overview.'
+        : 'Welcome back, ' . auth()->user()->name . '. Showing your assigned assets.'" />
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div class="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
